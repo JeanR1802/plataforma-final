@@ -5,24 +5,24 @@ export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const { hostname } = req.nextUrl;
 
-  // Obtenemos el dominio raíz desde las variables de entorno.
+  console.log(`--- [Middleware] Petición recibida para: ${hostname} ---`);
+
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'gestularia.com';
 
-  // Si el hostname es el dominio raíz (con o sin www) o una URL de Vercel,
-  // no hacemos nada y mostramos la página principal.
   if (
     hostname === rootDomain ||
     hostname === `www.${rootDomain}` ||
     hostname.endsWith('.vercel.app')
   ) {
+    console.log(`[Middleware] Es un dominio principal o de Vercel. No se hace nada.`);
     return NextResponse.next();
   }
 
-  // Si no, es un subdominio de tienda. Extraemos el slug.
   const subdomain = hostname.replace(`.${rootDomain}`, '');
+  console.log(`[Middleware] Subdominio detectado: "${subdomain}"`);
 
-  // Reescribimos la ruta para que apunte a la página de la tienda.
   const rewritePath = `/_stores/${subdomain}${url.pathname}`;
+  console.log(`[Middleware] Reescribiendo la ruta a: ${rewritePath}`);
   url.pathname = rewritePath;
   
   return NextResponse.rewrite(url);
