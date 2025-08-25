@@ -1,17 +1,53 @@
-// Por ahora, esta página será muy simple.
-// Solo confirmará que el enrutamiento del subdominio funciona.
+import { createClient } from '@supabase/supabase-js';
+import { notFound } from 'next/navigation';
 
-export default function StorePage({ params }: { params: { slug: string } }) {
+async function getStoreData(slug: string) {
+  console.log(`--- [DEBUG] Iniciando búsqueda para el slug: "${slug}" ---`);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[DEBUG] ERROR FATAL: Variables de entorno de Supabase NO encontradas.');
+    return null;
+  }
+  console.log('[DEBUG] Variables de entorno encontradas correctamente.');
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  console.log(`[DEBUG] Cliente de Supabase creado. Buscando en la tabla 'Store'...`);
+
+  const { data: store, error } = await supabase
+    .from('Store')
+    .select('name, heroTitle')
+    .eq('slug', slug)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 es el error normal para "no rows found"
+    console.error('[DEBUG] Error de Supabase al ejecutar la consulta:', error);
+  }
+  
+  console.log('[DEBUG] Resultado de la búsqueda en Supabase:', store);
+  console.log(`--- [DEBUG] Fin de la búsqueda para: "${slug}" ---`);
+  return store;
+}
+
+export default async function StorePage({ params }: { params: { slug: string } }) {
+  const store = await getStoreData(params.slug);
+
+  if (!store) {
+    console.log(`[DEBUG] No se encontró la tienda para "${params.slug}". Se mostrará la página 404.`);
+    notFound();
+  }
+
+  console.log(`[DEBUG] Tienda encontrada para "${params.slug}". Renderizando la página.`);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-blue-50">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-blue-800">
-          ¡Subdominio Detectado!
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gray-50 text-center">
+        <h1 className="text-5xl font-bold text-gray-800">
+          Bienvenido a {store.name || 'tu tienda'}
         </h1>
         <p className="mt-4 text-lg text-gray-600">
-          Estás viendo la página para la tienda: <strong>{params.slug}</strong>
+          Estás viendo la tienda del subdominio: <strong>{params.slug}</strong>
         </p>
-      </div>
     </main>
   );
 }
